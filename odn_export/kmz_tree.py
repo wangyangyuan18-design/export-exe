@@ -2,19 +2,19 @@
 """Discover semantic layers and group paths in a QGIS project loaded from KMZ."""
 from .naming import clean_name, norm, hub_from_group_name
 
-HOME_PASSED_NAMES = {'sdu', 'mdu', 'church', 'commercial', 'hospital', 'institution'}
+HOME_PASSED_NAMES = {'SDU', 'MDU', 'CHURCH', 'COMMERCIAL', 'HOSPITAL', 'INSTITUTION'}
 
 
 def home_passed_key(value):
-    \"\"\"Canonicalise HP layer names, accepting optional plural S and case changes.\"\"\"
+    # Canonicalise HP layer names, accepting optional plural forms and case changes.
     value = norm(value)
-    if value == 'churches':
+    if value == 'CHURCHES':
         return 'church'
-    if value.endswith('s'):
+    if value.endswith('S'):
         value = value[:-1]
     return value
-POLE_GROUP_NAMES = {'newpole', 'exsitingpole', 'existingpole'}
-SUBBOX_POINT_NAMES = {'subbox7030', 'subbox5050', 'endbox'}
+POLE_GROUP_NAMES = {'NEWPOLE', 'EXSITINGPOLE', 'EXISTINGPOLE'}
+SUBBOX_POINT_NAMES = {'SUBBOX7030', 'SUBBOX5050', 'ENDBOX'}
 
 def _is_group(node):
     return hasattr(node, 'children') and not hasattr(node, 'layer')
@@ -37,18 +37,18 @@ def _has_pole_ancestor(path):
 def classify_layer(layer_name, group_path):
     leaf = norm(layer_name)
     path_norm = [norm(p) for p in group_path]
-    if _has_pole_ancestor(group_path) or leaf.startswith('newpole') or leaf.startswith('exsitingpole') or leaf.startswith('existingpole'):
+    if _has_pole_ancestor(group_path) or leaf.startswith('NEWPOLE') or leaf.startswith('EXSITINGPOLE') or leaf.startswith('EXISTINGPOLE'):
         return 'pole'
-    if leaf == 'hubbox' or (leaf.startswith('hubbox') and 'boundary' not in leaf):
+    if leaf == 'HUBBOX' or (leaf.startswith('HUBBOX') and 'BOUNDARY' not in leaf):
         return 'hub_box'
-    if 'subboxboundary' in leaf:
+    if 'SUBBOXBOUNDARY' in leaf:
         return 'subbox_boundary'
     if leaf in SUBBOX_POINT_NAMES:
         return 'sub_box'
-    if 'distributioncable' in leaf:
+    if 'DISTRIBUTIONCABLE' in leaf:
         return 'distribution_cable'
     hp_key = home_passed_key(layer_name)
-    if hp_key in HOME_PASSED_NAMES and 'homepassed' in path_norm:
+    if hp_key in HOME_PASSED_NAMES and 'HOMEPASSED' in path_norm:
         return 'home_passed'
     # Some KMZ importers flatten one level; still recognise the six HP layer-name variants.
     if hp_key in HOME_PASSED_NAMES:
