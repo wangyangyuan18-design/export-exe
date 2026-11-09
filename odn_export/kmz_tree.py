@@ -2,7 +2,15 @@
 """Discover semantic layers and group paths in a QGIS project loaded from KMZ."""
 from .naming import clean_name, norm, hub_from_group_name
 
-HOME_PASSED_NAMES = {'sdus', 'mdus', 'church', 'commercial', 'hospitals', 'institution'}
+HOME_PASSED_NAMES = {'sdu', 'mdu', 'church', 'commercial', 'hospital', 'institution'}
+
+
+def home_passed_key(value):
+    \"\"\"Canonicalise HP layer names, accepting optional plural S and case changes.\"\"\"
+    value = norm(value)
+    if value.endswith('s'):
+        value = value[:-1]
+    return value
 POLE_GROUP_NAMES = {'newpole', 'exsitingpole', 'existingpole'}
 SUBBOX_POINT_NAMES = {'subbox7030', 'subbox5050', 'endbox'}
 
@@ -37,10 +45,11 @@ def classify_layer(layer_name, group_path):
         return 'sub_box'
     if 'distributioncable' in leaf:
         return 'distribution_cable'
-    if leaf in HOME_PASSED_NAMES and 'homepassed' in path_norm:
+    hp_key = home_passed_key(layer_name)
+    if hp_key in HOME_PASSED_NAMES and 'homepassed' in path_norm:
         return 'home_passed'
-    # Some KMZ importers flatten one level; still recognize the six exact HP layer names.
-    if leaf in HOME_PASSED_NAMES:
+    # Some KMZ importers flatten one level; still recognise the six HP layer-name variants.
+    if hp_key in HOME_PASSED_NAMES:
         return 'home_passed'
     return None
 
