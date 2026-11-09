@@ -219,13 +219,13 @@ def _choose_cable(sub, hub_id, link_no, cables, qa):
     return chosen, '名称精确匹配' if exact else '空间最近回退匹配'
 
 
-def _count_home_passed(boundary_geom, hp_records, hub_id, qa, sub_name):
+def _count_home_passed(boundary_geom, hp_records, hp_hub_groups, hub_id, qa, sub_name):
     """Sum numeric Home Passed placemark Name values inside the matching boundary."""
+    if hub_id not in hp_hub_groups:
+        qa.append(['ERROR', 'Home Passed', sub_name, '所属 HUB 分组缺少 Home Passed 图层',
+                   '为防止把其他 HUB 的住户误计入，本记录 HPs 留空。'])
+        return '', {}
     scoped = [r for r in hp_records if r.get('hub') == hub_id]
-    if not scoped:
-        scoped = hp_records
-        qa.append(['INFO', 'Home Passed', sub_name, 'Home Passed 图层使用全工程范围',
-                   '当前未识别到与 HUB {} 同组的 HP 图层；仍按边界多边形进行空间筛选。'.format(hub_id)])
     total_hps = 0.0
     feature_count = 0
     by_layer = {}
@@ -278,6 +278,7 @@ def export_from_kmz_project(project, output_path, pole_radius_m=8.0, progress=No
     boundaries = _layer_records(found['subbox_boundary'], project, qa, 'SUB BOX Boundary')
     cables = _layer_records(found['distribution_cable'], project, qa, 'Distribution Cable')
     hp = _layer_records(found['home_passed'], project, qa, 'Home Passed')
+    hp_hub_groups = {rec['hub_from_path'] for rec in found['home_passed'] if rec.get('hub_from_path')}
     hp_layer_types = {home_passed_key(rec['layer_name']) for rec in found['home_passed']}
     missing_hp_types = sorted(HP_LAYER_NAMES - hp_layer_types)
     if missing_hp_types:
@@ -344,7 +345,7 @@ def export_from_kmz_project(project, output_path, pole_radius_m=8.0, progress=No
         boundary, boundary_dup = _match_named(boundaries, name, hub_id, sub['point'])
         hp_count = ''
         if boundary:
-            hp_count, hp_breakdown = _count_home_passed(boundary['geom'], hp, hub_id, qa, name)
+            hp_count, hp_breakdown = _count_home_passed(boundary['geom'], hp, hp_hub_groups, hub_id, qa, name)
             if not hp_breakdown:
                 qa.append(['INFO', 'Home Passed', name, '该 SUB BOX Boundary 内未统计到数值型 HP 要素',
                            'HPs = 0；或边界内 HP 要素的 Name 不是数值，请检查 QA Report。'])
