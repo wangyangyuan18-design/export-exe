@@ -10,7 +10,7 @@ QGIS 3 plugin for exporting the ODN Excel schedule from the final KMZ layer tree
 - HUB BOX, Distribution Cable, SUB BOX Boundary and six Home Passed layers are discovered recursively in hub groups.
 - SUB BOX names such as `KIM-HB09L4S4` determine HUB ID, L link and S sequence. Output uses natural numeric order.
 - HUB BOX and SUB BOX are matched separately to the closest pole within a user-configurable radius (8 m default). Exported coordinates and pole names come from the matched pole.
-- HPs are calculated by counting point features in the six Home Passed layers (`Sdus`, `Mdus`, `Church`, `Commercial`, `Hospitals`, `Institution`) that intersect the matching same-name `SUB BOX Boundary` polygon.
+- HPs are calculated by summing the numeric `Name` values of point features in the six Home Passed categories (`Sdus`/`Sdu`, `Mdus`/`Mdu`, `Church`/`Churches`, `Commercial`, `Hospitals`/`Hospital`, `Institution`) that intersect the matching same-name `SUB BOX Boundary` polygon. Matching is case-insensitive and ignores spaces, punctuation, and an optional trailing plural `S`.
 - No source layers or geometries are edited.
 
 ## Distribution Cable SPAN
