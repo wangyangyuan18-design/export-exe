@@ -107,6 +107,8 @@ def _layer_records(layer_records, project, qa, kind):
         path_hub = layer_rec['hub_from_path']
         for feature in layer.getFeatures():
             name = _feature_name(layer, feature)
+            if not name and kind == 'HUB BOX':
+                name = path_hub or ''
             geom = _geom_wgs84(layer, feature, project, qa, kind, name or str(feature.id()))
             if geom is None:
                 continue
@@ -196,7 +198,11 @@ def _cable_span(cable, poles, qa, sub_name):
 
 
 def _choose_cable(sub, hub_id, link_no, cables, poles, qa):
-    group_candidates = _same_hub(cables, hub_id)
+    group_candidates = [item for item in cables if item.get('hub') == hub_id]
+    if not group_candidates:
+        group_candidates = [item for item in cables if norm(hub_id) in norm(item.get('name'))]
+    if not group_candidates and len(cables) == 1:
+        group_candidates = list(cables)
     if not group_candidates:
         return None
     token = re.compile(r'L0*{}(?!\d)'.format(int(link_no)), re.IGNORECASE)
