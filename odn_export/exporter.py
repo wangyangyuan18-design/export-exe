@@ -17,7 +17,7 @@ def _feature_name(layer, feature):
     """Get the KMZ Placemark name (normally the sole Name field)."""
     fields = layer.fields()
     names = [f.name() for f in fields]
-    name_field = next((n for n in names if norm(n) == 'name'), None)
+    name_field = next((n for n in names if norm(n) == 'NAME'), None)
     candidates = [name_field] if name_field else []
     candidates += [n for n in names if n not in candidates]
     for field_name in candidates:
