@@ -5,7 +5,7 @@ import os
 import re
 from qgis.core import (QgsCoordinateReferenceSystem, QgsCoordinateTransform,
                        QgsGeometry, QgsPointXY, QgsProject, QgsDistanceArea)
-from .kmz_tree import scan_project, home_passed_key, HOME_PASSED_NAMES, home_passed_key, HOME_PASSED_NAMES
+from .kmz_tree import scan_project, home_passed_key, HOME_PASSED_NAMES
 from .naming import clean_name, norm, parse_subbox_name, natural_hub_key
 from .xlsx_writer import write_workbook
 
