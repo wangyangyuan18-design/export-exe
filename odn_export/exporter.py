@@ -266,6 +266,11 @@ def export_from_kmz_project(project, output_path, pole_radius_m=8.0, progress=No
     boundaries = _layer_records(found['subbox_boundary'], project, qa, 'SUB BOX Boundary')
     cables = _layer_records(found['distribution_cable'], project, qa, 'Distribution Cable')
     hp = _layer_records(found['home_passed'], project, qa, 'Home Passed')
+    hp_layer_types = {norm(rec['layer_name']) for rec in found['home_passed']}
+    missing_hp_types = sorted(HP_LAYER_NAMES - hp_layer_types)
+    if missing_hp_types:
+        qa.append(['WARNING', 'Home Passed', 'Project layer tree', '6 类 Home Passed 图层不完整',
+                   '缺少图层：{}；HP 数量将按当前已识别到的图层统计。'.format(', '.join(missing_hp_types))])
 
     if not poles:
         raise ValueError('Poles 图层已识别，但没有可读取的有效杆子要素。')
