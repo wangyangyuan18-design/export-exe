@@ -77,7 +77,7 @@ def _worksheet_main(data_rows):
         'HUB BOX Name字段名称', '该SUB BOX所属链路（L1-L4）',
         'Distribution Cable 线要素的测地长度（m），保留 1 位小数', '固定填1',
         'SUB BOX所属杆子的坐标（纬度, 经度）', 'SUB BOX所属杆子的Name字段名称',
-        'SUB BOX Name字段名称', '同名 SUB BOX Boundary 内 6 个 Home Passed 图层要素数量', '固定填1'
+        'SUB BOX Name字段名称', '同名 SUB BOX Boundary 内 6 类 Home Passed 要素 Name 数值之和', '固定填1'
     ], [3] * 11)
     for i, values in enumerate(data_rows, 4):
         row_styles = [4 if i % 2 == 0 else 5] * 11
