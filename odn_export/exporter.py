@@ -220,21 +220,44 @@ def _choose_cable(sub, hub_id, link_no, cables, qa):
 
 
 def _count_home_passed(boundary_geom, hp_records, hub_id, qa, sub_name):
+    """Sum numeric Home Passed placemark Name values inside the matching boundary."""
     scoped = [r for r in hp_records if r.get('hub') == hub_id]
     if not scoped:
         scoped = hp_records
         qa.append(['INFO', 'Home Passed', sub_name, 'Home Passed 图层使用全工程范围',
                    '当前未识别到与 HUB {} 同组的 HP 图层；仍按边界多边形进行空间筛选。'.format(hub_id)])
-    count = 0
+    total_hps = 0.0
+    feature_count = 0
     by_layer = {}
+    non_numeric = []
     for record in scoped:
         try:
-            if boundary_geom.intersects(record['geom']):
-                count += 1
-                by_layer[record['layer']] = by_layer.get(record['layer'], 0) + 1
+            if not boundary_geom.intersects(record['geom']):
+                continue
         except Exception:
-            pass
-    return count, by_layer
+            continue
+        raw_name = str(record.get('name') or '').strip().replace(',', '')
+        try:
+            units = float(raw_name)
+            if not math.isfinite(units):
+                raise ValueError('non-finite')
+        except Exception:
+            non_numeric.append((record.get('layer', ''), raw_name))
+            continue
+        total_hps += units
+        feature_count += 1
+        by_layer[record['layer']] = by_layer.get(record['layer'], 0.0) + units
+    for layer_name, bad_name in non_numeric:
+        qa.append(['WARNING', 'Home Passed', sub_name, 'HP 要素 Name 不是数值，未计入合计',
+                   '图层：{}；Name：{}'.format(layer_name, bad_name)])
+    if abs(total_hps - round(total_hps)) < 1e-9:
+        total_hps = int(round(total_hps))
+    else:
+        total_hps = round(total_hps, 2)
+    if feature_count == 0 and not non_numeric:
+        qa.append(['INFO', 'Home Passed', sub_name, '边界内未统计到 Home Passed 要素',
+                   'HPs = 0；请检查边界与 Home Passed 点位是否重叠。'])
+    return total_hps, by_layer
 
 
 def export_from_kmz_project(project, output_path, pole_radius_m=8.0, progress=None):
@@ -323,8 +346,8 @@ def export_from_kmz_project(project, output_path, pole_radius_m=8.0, progress=No
         if boundary:
             hp_count, hp_breakdown = _count_home_passed(boundary['geom'], hp, hub_id, qa, name)
             if not hp_breakdown:
-                qa.append(['INFO', 'Home Passed', name, '该 SUB BOX Boundary 内未统计到 HP 要素',
-                           'HP Count = 0；请检查边界与 Home Passed 点位是否重叠。'])
+                qa.append(['INFO', 'Home Passed', name, '该 SUB BOX Boundary 内未统计到数值型 HP 要素',
+                           'HPs = 0；或边界内 HP 要素的 Name 不是数值，请检查 QA Report。'])
             if boundary_dup > 1:
                 qa.append(['WARNING', 'SUB BOX Boundary', name, '同名边界多边形重复',
                            '已优先按 HUB 分组并按与 SUB BOX 最近的多边形选择。'])
