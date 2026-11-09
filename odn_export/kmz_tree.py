@@ -8,6 +8,8 @@ HOME_PASSED_NAMES = {'sdu', 'mdu', 'church', 'commercial', 'hospital', 'institut
 def home_passed_key(value):
     \"\"\"Canonicalise HP layer names, accepting optional plural S and case changes.\"\"\"
     value = norm(value)
+    if value == 'churches':
+        return 'church'
     if value.endswith('s'):
         value = value[:-1]
     return value
