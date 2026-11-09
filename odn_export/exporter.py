@@ -4,13 +4,13 @@ import math
 import os
 import re
 from qgis.core import (QgsCoordinateReferenceSystem, QgsCoordinateTransform,
-                       QgsGeometry, QgsPointXY, QgsProject)
-from .kmz_tree import scan_project
+                       QgsGeometry, QgsPointXY, QgsProject, QgsDistanceArea)
+from .kmz_tree import scan_project, home_passed_key, HOME_PASSED_NAMES
 from .naming import clean_name, norm, parse_subbox_name, natural_hub_key
 from .xlsx_writer import write_workbook
 
 WGS84 = QgsCoordinateReferenceSystem('EPSG:4326')
-HP_LAYER_NAMES = {'sdus', 'mdus', 'church', 'commercial', 'hospitals', 'institution'}
+HP_LAYER_NAMES = HOME_PASSED_NAMES
 
 
 def _feature_name(layer, feature):
@@ -163,41 +163,25 @@ def _same_hub(items, hub_id):
     return items
 
 
-def _feature_segment_count(geom):
-    """Count line vertex intervals, summed across multipart geometry."""
+def _cable_span(cable, project, qa, sub_name):
+    """Measure the Distribution Cable geometry length in metres on WGS84 ellipsoid."""
     try:
-        if geom.isMultipart():
-            parts = geom.asMultiPolyline()
-            return sum(max(0, len(part) - 1) for part in parts)
-        points = geom.asPolyline()
-        return max(0, len(points) - 1)
-    except Exception:
-        return 0
+        distance = QgsDistanceArea()
+        distance.setSourceCrs(WGS84, project.transformContext())
+        distance.setEllipsoid('WGS84')
+        length_m = float(distance.measureLength(cable['geom']))
+        if not math.isfinite(length_m) or length_m <= 0:
+            raise ValueError('线要素长度为 0 或无效')
+        length_m = round(length_m, 1)
+        qa.append(['INFO', 'Distribution Cable', sub_name, 'SPAN 直接读取线几何长度',
+                   '测地长度：{:.1f} m（WGS84 椭球）。'.format(length_m)])
+        return length_m
+    except Exception as exc:
+        qa.append(['ERROR', 'Distribution Cable', sub_name, '无法计算光缆几何长度', str(exc)])
+        return ''
 
 
-def _cable_span(cable, poles, qa, sub_name):
-    # Prefer pole-to-pole intervals along the line when the pole geometry traces the cable.
-    along = 0
-    for pole in poles:
-        distance = _geometry_distance_m(pole['point'], cable['geom'])
-        if distance is not None and distance <= 2.5:
-            along += 1
-    if along >= 2:
-        span = along - 1
-        qa.append(['INFO', 'Distribution Cable', sub_name, 'SPAN 由光缆线上杆子数量推算',
-                   '识别到 {} 根杆子，按相邻杆间区间计算为 {}。'.format(along, span)])
-        return span
-    segments = _feature_segment_count(cable['geom'])
-    if segments:
-        qa.append(['WARNING', 'Distribution Cable', sub_name, 'SPAN 使用折线顶点段数推算',
-                   '未能在线上识别到至少 2 根杆子；按折线几何段数 {} 填写，请复核。'.format(segments)])
-        return segments
-    qa.append(['WARNING', 'Distribution Cable', sub_name, '无法从 KMZ 几何推算 SPAN',
-               'KMZ 不包含原始 Span 字段，该值留空。'])
-    return ''
-
-
-def _choose_cable(sub, hub_id, link_no, cables, poles, qa):
+def _choose_cable(sub, hub_id, link_no, cables, qa):
     group_candidates = [item for item in cables if item.get('hub') == hub_id]
     if not group_candidates:
         group_candidates = [item for item in cables if norm(hub_id) in norm(item.get('name'))]
@@ -205,13 +189,18 @@ def _choose_cable(sub, hub_id, link_no, cables, poles, qa):
         group_candidates = list(cables)
     if not group_candidates:
         return None
-    token = re.compile(r'L0*{}(?!\d)'.format(int(link_no)), re.IGNORECASE)
-    full_key = norm('{}L{}'.format(hub_id, link_no))
-    exact = [c for c in group_candidates if full_key in norm(c['name'])]
+
+    # Best match: cable name contains the complete SUB BOX identifier.
+    subbox_key = norm(sub['name'])
+    exact = [c for c in group_candidates if subbox_key and subbox_key in norm(c['name'])]
+    # Fallback: match the HUB + L-link, then use nearest geometry.
     if not exact:
-        exact = [c for c in group_candidates if token.search(clean_name(c['name']))]
+        token = re.compile(r'L0*{}(?!\\d)'.format(int(link_no)), re.IGNORECASE)
+        full_key = norm('{}L{}'.format(hub_id, link_no))
+        exact = [c for c in group_candidates if full_key in norm(c['name'])]
+        if not exact:
+            exact = [c for c in group_candidates if token.search(clean_name(c['name']))]
     candidates = exact if exact else group_candidates
-    method = '名称包含 HUB ID + L 链路' if exact else '同 HUB 组内空间最近光缆'
     if len(candidates) == 1:
         chosen = candidates[0]
     else:
@@ -225,9 +214,9 @@ def _choose_cable(sub, hub_id, link_no, cables, poles, qa):
         ranked.sort(key=lambda pair: pair[0])
         chosen = ranked[0][1]
     if not exact and len(group_candidates) > 1:
-        qa.append(['WARNING', 'Distribution Cable', sub['name'], '无法从名称直接识别 L 链路',
+        qa.append(['WARNING', 'Distribution Cable', sub['name'], '无法从名称直接识别所属光缆',
                    '在所属 HUB 分组内按与 SUB BOX 最近的光缆选择；请复核 L{}。'.format(link_no)])
-    return chosen, method
+    return chosen, '名称精确匹配' if exact else '空间最近回退匹配'
 
 
 def _count_home_passed(boundary_geom, hp_records, hub_id, qa, sub_name):
@@ -266,7 +255,7 @@ def export_from_kmz_project(project, output_path, pole_radius_m=8.0, progress=No
     boundaries = _layer_records(found['subbox_boundary'], project, qa, 'SUB BOX Boundary')
     cables = _layer_records(found['distribution_cable'], project, qa, 'Distribution Cable')
     hp = _layer_records(found['home_passed'], project, qa, 'Home Passed')
-    hp_layer_types = {norm(rec['layer_name']) for rec in found['home_passed']}
+    hp_layer_types = {home_passed_key(rec['layer_name']) for rec in found['home_passed']}
     missing_hp_types = sorted(HP_LAYER_NAMES - hp_layer_types)
     if missing_hp_types:
         qa.append(['WARNING', 'Home Passed', 'Project layer tree', '6 类 Home Passed 图层不完整',
@@ -346,10 +335,10 @@ def export_from_kmz_project(project, output_path, pole_radius_m=8.0, progress=No
 
         span = ''
         if parsed:
-            chosen = _choose_cable(sub, hub_id, link_no, cables, poles, qa)
+            chosen = _choose_cable(sub, hub_id, link_no, cables, qa)
             if chosen:
                 cable_rec, _method = chosen
-                span = _cable_span(cable_rec, poles, qa, name)
+                span = _cable_span(cable_rec, project, qa, name)
             else:
                 qa.append(['WARNING', 'Distribution Cable', name, '未找到所属 HUB 的光缆线要素',
                            'KMZ 中没有可用 Distribution Cable 几何，SPAN 留空。'])
