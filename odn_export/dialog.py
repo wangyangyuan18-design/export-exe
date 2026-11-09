@@ -61,7 +61,7 @@ class ODNExportDialog(QDialog):
         root.addWidget(settings)
 
         self.note = QLabel(
-            'SPAN：KMZ 不含原始 Span 字段，程序优先按光缆线上可识别的杆子区间推算；无法识别时按折线顶点段数推算，均会写入 QA Report。'
+            'SPAN：直接计算对应 Distribution Cable 线要素的实际测地长度，单位米，保留一位小数。HPs 统计同名 SUB BOX Boundary 内的六类 Home Passed 要素。'
         )
         self.note.setWordWrap(True)
         self.note.setStyleSheet('color:#555;')
