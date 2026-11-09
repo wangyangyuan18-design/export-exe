@@ -27,7 +27,7 @@ def _has_pole_ancestor(path):
 def classify_layer(layer_name, group_path):
     leaf = norm(layer_name)
     path_norm = [norm(p) for p in group_path]
-    if _has_pole_ancestor(group_path):
+    if _has_pole_ancestor(group_path) or leaf.startswith('newpole') or leaf.startswith('exsitingpole') or leaf.startswith('existingpole'):
         return 'pole'
     if leaf == 'hubbox' or (leaf.startswith('hubbox') and 'boundary' not in leaf):
         return 'hub_box'
