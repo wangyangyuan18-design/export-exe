@@ -1,11 +1,11 @@
 [general]
-name=ODN Export Information (KMZ)
+name=ODN Export Information (KMZ / KML)
 qgisMinimumVersion=3.22
-description=Export HUB BOX, SUB BOX, poles, cable span and polygon-derived HP counts from a KMZ layer tree.
-version=0.2.3
+description=Export HUB BOX, SUB BOX, pole, Distribution Cable SPAN and boundary-derived HPs directly from a selected KMZ/KML source file.
+version=0.3.0
 author=wangyangyuan18-design
 email=
-about=Reads grouped KMZ layers, ignores trailing count suffixes, matches boxes to poles within a configurable radius, derives HP counts from Home Passed points inside same-name SUB BOX Boundary polygons, and exports XLSX plus QA report.
+about=Reads the selected KMZ/KML independently of the current QGIS project. Reads all SUB BOX types, assigns each Distribution Cable to the last SUB BOX endpoint in its name, sums numeric Home Passed Placemark names inside same-HUB SUB BOX Boundary polygons, matches boxes to poles within a configurable radius, and exports XLSX plus QA report.
 category=Vector
 icon=icon.svg
 experimental=False
