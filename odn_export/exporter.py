@@ -195,7 +195,7 @@ def _choose_cable(sub, hub_id, link_no, cables, qa):
     exact = [c for c in group_candidates if subbox_key and subbox_key in norm(c['name'])]
     # Fallback: match the HUB + L-link, then use nearest geometry.
     if not exact:
-        token = re.compile(r'L0*{}(?!\\d)'.format(int(link_no)), re.IGNORECASE)
+        token = re.compile(r'L0*{}(?!\d)'.format(int(link_no)), re.IGNORECASE)
         full_key = norm('{}L{}'.format(hub_id, link_no))
         exact = [c for c in group_candidates if full_key in norm(c['name'])]
         if not exact:
