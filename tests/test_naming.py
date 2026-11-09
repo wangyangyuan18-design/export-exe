@@ -1,5 +1,9 @@
 import sys
 import unittest
+import os
+import tempfile
+import zipfile
+from odn_export.xlsx_writer import write_workbook
 sys.path.insert(0, '.')
 from odn_export.naming import strip_count_suffix, parse_subbox_name, subbox_sort_key
 from odn_export.kmz_tree import classify_layer, home_passed_key, HOME_PASSED_NAMES
@@ -29,6 +33,17 @@ class NamingTests(unittest.TestCase):
         self.assertEqual(classify_layer('Distribution Cable=14', ('KWG-HB01',)), 'distribution_cable')
         self.assertEqual(classify_layer('Sdus=196', ('KWG-HB01', 'Home Passed=196')), 'home_passed')
         self.assertEqual(classify_layer('Hospitals=1', ('KWG-HB06', 'Home Passed=230')), 'home_passed')
+
+    def test_xlsx_writer_preserves_numeric_span_format(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, 'test.xlsx')
+            write_workbook(path, [['', '', 'KWG-HB01', 'L1', 149.5, 1, '', '', 'KWG-HB01L1S1', 15, 1]], [], 8)
+            with zipfile.ZipFile(path) as book:
+                styles = book.read('xl/styles.xml').decode('utf-8')
+                sheet = book.read('xl/worksheets/sheet1.xml').decode('utf-8')
+            self.assertIn('formatCode="0.0"', styles)
+            self.assertIn('r="E4" s="8"', sheet)
+            self.assertIn('<v>149.5</v>', sheet)
 
     def test_natural_sort(self):
         names = ['KIM-HB09L1S10', 'KIM-HB09L1S2', 'KIM-HB09L2S1', 'KIM-HB10L1S1']
