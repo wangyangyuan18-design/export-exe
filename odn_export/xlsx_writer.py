@@ -75,12 +75,14 @@ def _worksheet_main(data_rows):
     _row(sheet_data, 3, [
         'HUB BOX所属杆子的坐标（纬度, 经度）', 'HUB BOX所属杆子的Name字段名称',
         'HUB BOX Name字段名称', '该SUB BOX所属链路（L1-L4）',
-        '由 Distribution Cable 线几何推算的 Span 数量（请核对 QA Report）', '固定填1',
+        'Distribution Cable 线要素的测地长度（m），保留 1 位小数', '固定填1',
         'SUB BOX所属杆子的坐标（纬度, 经度）', 'SUB BOX所属杆子的Name字段名称',
         'SUB BOX Name字段名称', '同名 SUB BOX Boundary 内 6 个 Home Passed 图层要素数量', '固定填1'
     ], [3] * 11)
     for i, values in enumerate(data_rows, 4):
-        _row(sheet_data, i, values, [4 if i % 2 == 0 else 5] * 11)
+        row_styles = [4 if i % 2 == 0 else 5] * 11
+        row_styles[4] = 8  # SPAN: numeric format 0.0
+        _row(sheet_data, i, values, row_styles)
     ET.SubElement(root, _tag('mergeCells'), {'count': '3'})
     merges = root.find(_tag('mergeCells'))
     for ref in ('A1:D1', 'E1:F1', 'G1:K1'):
@@ -109,6 +111,8 @@ def _worksheet_report(qa, pole_radius_m):
 
 def _styles_xml():
     root = ET.Element(_tag('styleSheet'))
+    num_fmts = ET.SubElement(root, _tag('numFmts'), {'count': '1'})
+    ET.SubElement(num_fmts, _tag('numFmt'), {'numFmtId': '164', 'formatCode': '0.0'})
     fonts = ET.SubElement(root, _tag('fonts'), {'count': '4'})
     f0 = ET.SubElement(fonts, _tag('font')); ET.SubElement(f0, _tag('sz'), {'val': '10'}); ET.SubElement(f0, _tag('name'), {'val': 'Arial'})
     f1 = ET.SubElement(fonts, _tag('font')); ET.SubElement(f1, _tag('b')); ET.SubElement(f1, _tag('color'), {'rgb': 'FFFFFFFF'}); ET.SubElement(f1, _tag('sz'), {'val': '12'}); ET.SubElement(f1, _tag('name'), {'val': 'Arial'})
@@ -126,7 +130,7 @@ def _styles_xml():
     ET.SubElement(border, _tag('diagonal'))
     cell_style_xfs = ET.SubElement(root, _tag('cellStyleXfs'), {'count': '1'})
     ET.SubElement(cell_style_xfs, _tag('xf'), {'numFmtId': '0', 'fontId': '0', 'fillId': '0', 'borderId': '0'})
-    xfs = ET.SubElement(root, _tag('cellXfs'), {'count': '8'})
+    xfs = ET.SubElement(root, _tag('cellXfs'), {'count': '9'})
     ET.SubElement(xfs, _tag('xf'), {'numFmtId': '0', 'fontId': '0', 'fillId': '0', 'borderId': '0', 'xfId': '0'})
     ET.SubElement(xfs, _tag('xf'), {'numFmtId': '0', 'fontId': '1', 'fillId': '2', 'borderId': '1', 'xfId': '0', 'applyFont': '1', 'applyFill': '1', 'applyBorder': '1', 'applyAlignment': '1'}).append(ET.Element(_tag('alignment'), {'horizontal': 'center', 'vertical': 'center'}))
     ET.SubElement(xfs, _tag('xf'), {'numFmtId': '0', 'fontId': '2', 'fillId': '3', 'borderId': '1', 'xfId': '0', 'applyFont': '1', 'applyFill': '1', 'applyBorder': '1', 'applyAlignment': '1'}).append(ET.Element(_tag('alignment'), {'horizontal': 'center', 'vertical': 'center', 'wrapText': '1'}))
@@ -135,6 +139,7 @@ def _styles_xml():
     ET.SubElement(xfs, _tag('xf'), {'numFmtId': '0', 'fontId': '0', 'fillId': '4', 'borderId': '1', 'xfId': '0', 'applyBorder': '1', 'applyFill': '1', 'applyAlignment': '1'}).append(ET.Element(_tag('alignment'), {'vertical': 'center', 'wrapText': '1'}))
     ET.SubElement(xfs, _tag('xf'), {'numFmtId': '0', 'fontId': '0', 'fillId': '0', 'borderId': '1', 'xfId': '0', 'applyBorder': '1', 'applyAlignment': '1'}).append(ET.Element(_tag('alignment'), {'vertical': 'center', 'wrapText': '1'}))
     ET.SubElement(xfs, _tag('xf'), {'numFmtId': '0', 'fontId': '0', 'fillId': '0', 'borderId': '1', 'xfId': '0', 'applyBorder': '1', 'applyAlignment': '1'}).append(ET.Element(_tag('alignment'), {'vertical': 'center', 'wrapText': '1'}))
+    ET.SubElement(xfs, _tag('xf'), {'numFmtId': '164', 'fontId': '0', 'fillId': '0', 'borderId': '1', 'xfId': '0', 'applyNumberFormat': '1', 'applyBorder': '1', 'applyAlignment': '1'}).append(ET.Element(_tag('alignment'), {'horizontal': 'right', 'vertical': 'center'}))
     cell_styles = ET.SubElement(root, _tag('cellStyles'), {'count': '1'})
     ET.SubElement(cell_styles, _tag('cellStyle'), {'name': 'Normal', 'xfId': '0', 'builtinId': '0'})
     return ET.tostring(root, encoding='utf-8', xml_declaration=True)
