@@ -15,7 +15,7 @@ QGIS 3 plugin for exporting the ODN Excel schedule from the final KMZ layer tree
 
 ## Distribution Cable SPAN
 
-KMZ does not preserve the previous `Span` attribute value. The plugin derives SPAN from the cable geometry: when at least two pole points are found along the selected cable, SPAN is the number of matched pole intervals; otherwise it uses the line geometry's vertex-segment count. Derived values are flagged in the QA worksheet so they can be checked against the source design.
+KMZ does not preserve the previous `Span` attribute value. SPAN is the measured geodesic length of the matched Distribution Cable line geometry in metres (WGS84 ellipsoid), rounded to one decimal place. It is written as a numeric Excel value with a one-decimal number format.
 
 ## Installation
 
