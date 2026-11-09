@@ -9,7 +9,7 @@ def home_passed_key(value):
     # Canonicalise HP layer names, accepting optional plural forms and case changes.
     value = norm(value)
     if value == 'CHURCHES':
-        return 'church'
+        return 'CHURCH'
     if value.endswith('S'):
         value = value[:-1]
     return value
