@@ -2,7 +2,7 @@
 name=ODN Export Information (KMZ)
 qgisMinimumVersion=3.22
 description=Export HUB BOX, SUB BOX, poles, cable span and polygon-derived HP counts from a KMZ layer tree.
-version=0.2.2
+version=0.2.3
 author=wangyangyuan18-design
 email=
 about=Reads grouped KMZ layers, ignores trailing count suffixes, matches boxes to poles within a configurable radius, derives HP counts from Home Passed points inside same-name SUB BOX Boundary polygons, and exports XLSX plus QA report.
